@@ -1,3 +1,8 @@
+Sandbox Repo for study concept of computational design
+Based on LEAP71's Tutorail (Coding For Engineers)
+
+***
+
 # Getting started with PicoGK
 
 PicoGK ("peacock") is a compact and robust geometry kernel for Computational Engineering.
