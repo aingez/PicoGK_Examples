@@ -17,12 +17,14 @@
 //
 
 using PicoGK;
-using PicoGKExamples;
+// using Coding4Engineers;
 
-// This simple call runs PicoGK with the specified task and shows the PicoGK viewer
+try
+{
+    Library.Go(.1f, Fixture.App.Run);
+}
 
-Library.Go( 0.5f,                   // size of each voxel in millimeters
-            BooleanShowCase.Task);       // the task you want to execute
-
-// After you close the viewer, the application exits.
-
+catch (Exception ex)
+{
+    Console.WriteLine(ex.Message);
+}
