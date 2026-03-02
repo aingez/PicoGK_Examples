@@ -21,7 +21,7 @@ using PicoGK;
 
 try
 {
-    Library.Go(.1f, Fixture.App.Run);
+    Library.Go(1.0f, Fixture.App.Run);
 }
 
 catch (Exception ex)
