@@ -16,12 +16,13 @@
 // THE SOFTWARE.
 //
 
+using Fixture;
 using PicoGK;
 // using Coding4Engineers;
 
 try
 {
-    Library.Go(1.0f, Fixture.App.Run);
+    Library.Go(1.0f, FixtureMakerApp.Run);
 }
 
 catch (Exception ex)

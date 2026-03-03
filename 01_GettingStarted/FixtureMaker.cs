@@ -3,11 +3,11 @@ using PicoGK;
 
 namespace Fixture
 {
-    public class App
+    public class FixtureMakerApp
     {
         public static void Run()
         {
-            BasePlate oBase = new();
+            Fixture.BasePlate oBase = new();
 
             Mesh mshSmall = Mesh.mshFromStlFile(Path.Combine(
                 Utils.strPicoGKSourceCodeFolder(),
@@ -16,7 +16,7 @@ namespace Fixture
 
             Mesh mshObject = mshSmall.mshCreateTransformed(new Vector3(6, 6, 6), Vector3.Zero);
 
-            FixtureObject oObject = new(mshObject,
+            Object oObject = new(mshObject,
                                                     15,
                                                     20,
                                                     5,
@@ -31,72 +31,6 @@ namespace Fixture
             oFixture.voxAsVoxels().mshAsMesh().SaveToStlFile(Path.Combine(Utils.strDocumentsFolder(),
                                                                 "Fixture.stl"));
         }
-    }
-
-    public class FixtureObject
-    {
-        public FixtureObject(Mesh msh,
-                                       float fObjectBottomMM,
-                                       float fSleeveMM,
-                                       float fWallMM,
-                                       float fFlangeMM)
-        {
-            // param valiadate
-            if (fObjectBottomMM <= 0)
-                throw new Exception("Object cannot vbe placed under build plate.");
-
-            // set bound
-            BBox3 oObjectBounds = msh.oBoundingBox();
-            Vector3 vecOffset = new Vector3(
-                -oObjectBounds.vecCenter().X,
-                -oObjectBounds.vecCenter().Y,
-                -oObjectBounds.vecMin.Z + fObjectBottomMM
-            );
-
-            m_voxObject = new Voxels(msh.mshCreateTransformed(Vector3.One, vecOffset));
-            m_fObjectBottom = fObjectBottomMM;
-            m_fSleeve = fSleeveMM;
-            m_fWall = fWallMM;
-            m_fFlange = fFlangeMM;
-
-        }
-
-        public Voxels voxObject()
-        {
-            return m_voxObject;
-        }
-
-        public float fWallMM()
-        {
-            return m_fWall;
-        }
-
-        public float fSleeveMM()
-        {
-            return m_fSleeve;
-        }
-
-        public float fFlangeHeightMM()
-        {
-            return m_fObjectBottom;
-        }
-
-        public float fFlangeWidthMM()
-        {
-            return m_fFlange;
-        }
-
-        Voxels m_voxObject;
-        float m_fObjectBottom;
-        float m_fSleeve;
-        float m_fWall;
-        float m_fFlange;
-
-    }
-
-    public class BasePlate
-    {
-        // nothing here yet
     }
 
     public class ProgressReporterActive : ProgressReporter
@@ -130,7 +64,6 @@ namespace Fixture
         }
 
     }
-
     public class ProgressReporterSilent : ProgressReporter
     {
         public override void AddObject(Voxels vox,
@@ -152,7 +85,6 @@ namespace Fixture
 
     }
 
-
     public abstract class ProgressReporter
     {
         public abstract void AddObject(Voxels vox,
@@ -167,10 +99,69 @@ namespace Fixture
 
     }
 
+    public class Object
+    {
+        public Object(Mesh msh,
+                                       float fObjectBottomMM,
+                                       float fSleeveMM,
+                                       float fWallMM,
+                                       float fFlangeMM)
+        {
+            // param valiadate
+            if (fObjectBottomMM <= 0)
+                throw new Exception("Object cannot vbe placed under build plate.");
+
+            // set bound
+            BBox3 oObjectBounds = msh.oBoundingBox();
+            Vector3 vecOffset = new Vector3(
+                -oObjectBounds.vecCenter().X,
+                -oObjectBounds.vecCenter().Y,
+                -oObjectBounds.vecMin.Z + fObjectBottomMM
+            );
+
+            m_voxObject = new Voxels(msh.mshCreateTransformed(Vector3.One, vecOffset));
+            m_fObjectBottom = fObjectBottomMM;
+            m_fSleeve = fSleeveMM;
+            m_fWall = fWallMM;
+            m_fFlange = fFlangeMM;
+        }
+
+        public Voxels voxObject()
+        {
+            return m_voxObject;
+        }
+
+        public float fWallMM()
+        {
+            return m_fWall;
+        }
+
+        public float fSleeveMM()
+        {
+            return m_fSleeve;
+        }
+
+        public float fFlangeHeightMM()
+        {
+            return m_fObjectBottom;
+        }
+
+        public float fFlangeWidthMM()
+        {
+            return m_fFlange;
+        }
+
+        Voxels m_voxObject;
+        float m_fObjectBottom;
+        float m_fSleeve;
+        float m_fWall;
+        float m_fFlange;
+    }
+
     public class Fixture
     {
         public Fixture(BasePlate oPlate,
-                        FixtureObject oObject,
+                        Object oObject,
                         ProgressReporter oProgress)
         {
             // new mesh import
@@ -219,6 +210,11 @@ namespace Fixture
             oProgress.AddObject(voxObjectRemovable, 2);
             oProgress.AddObject(m_voxFixture, 0);
 
+        }
+
+        public class BasePlate
+        {
+            // nothing here yet
         }
 
         public Voxels voxAsVoxels()
