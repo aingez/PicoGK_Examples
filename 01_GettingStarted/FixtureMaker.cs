@@ -24,7 +24,9 @@ namespace Fixture
                                 10, // fObjectBottomMM
                                 22, // fSleeveMM
                                 8, // fWallMM
-                                25); // fFlangeMM
+                                25, // fFlangeMM
+                                .2f // tolarance
+            );
 
             // create new fixture and export as stl
             // passing a ProgressReporterActive object, which routes all of our information to the viewer
@@ -109,9 +111,15 @@ namespace Fixture
                                        float fObjectBottomMM,
                                        float fSleeveMM,
                                        float fWallMM,
-                                       float fFlangeMM)
+                                       float fFlangeMM,
+                                       float fObjectTolerance = 0.1f)
         {
             // param valiadate
+            if (fObjectTolerance < 0f)
+                throw new Exception("Object tolerance must be equal or larger than 0");
+
+            m_fTolerance = fObjectTolerance;
+
             if (fObjectBottomMM <= 0)
                 throw new Exception("Object cannot vbe placed under build plate.");
 
@@ -128,6 +136,11 @@ namespace Fixture
             m_fSleeve = fSleeveMM;
             m_fWall = fWallMM;
             m_fFlange = fFlangeMM;
+        }
+
+        public float fObjectTolerance()
+        {
+            return m_fTolerance;
         }
 
         public Voxels voxObject()
@@ -160,6 +173,7 @@ namespace Fixture
         float m_fSleeve;
         float m_fWall;
         float m_fFlange;
+        float m_fTolerance;
     }
 
     public class Fixture
@@ -203,13 +217,15 @@ namespace Fixture
 
             m_voxFixture.BoolAdd(voxFlange);
 
-            // z slice upward
+            // z slice upward, gives tolarence for removable
             Voxels voxObjectRemovable = new(oObject.voxObject());
-            BBox3 oObjectBounds = voxObjectRemovable.mshAsMesh().oBoundingBox();
-            voxObjectRemovable.ProjectZSlice(oObjectBounds.vecMin.Z,
-                                                oObjectBounds.vecMax.Z);
+            voxObjectRemovable.Offset(oObject.fObjectTolerance());
+            m_voxFixture.OverOffset(-1);
 
-            m_voxFixture.BoolSubtract(voxObjectRemovable);
+            BBox3 oObjectBounds = voxObjectRemovable.mshAsMesh().oBoundingBox();
+            voxObjectRemovable.ProjectZSlice(oObjectBounds.vecMin.Z, oObjectBounds.vecMax.Z);
+
+            m_voxFixture -= voxObjectRemovable;
 
             // progress report
             oProgress.SetGroupMaterial(0, "da9c6b", 0.3f, 0.7f);
