@@ -7,7 +7,10 @@ namespace Fixture
     {
         public static void Run()
         {
-            Fixture.BasePlate oBase = new();
+            Fixture.BasePlate oBase = new(new(300, 200), // vecSizeMM
+                                            20, // fHoleSpacingMM
+                                            8 // fHoleDiameterMM
+            );
 
             Mesh mshSmall = Mesh.mshFromStlFile(Path.Combine(
                 Utils.strPicoGKSourceCodeFolder(),
@@ -15,12 +18,13 @@ namespace Fixture
                 "../asset/Teapot.stl"));
 
             Mesh mshObject = mshSmall.mshCreateTransformed(new Vector3(6, 6, 6), Vector3.Zero);
+            // Mesh mshObject = mshSmall.mshCreateTransformed(new Vector3(1, 1, 1), Vector3.Zero);
 
             Object oObject = new(mshObject,
-                                                    15,
-                                                    20,
-                                                    5,
-                                                    25);
+                                10, // fObjectBottomMM
+                                22, // fSleeveMM
+                                8, // fWallMM
+                                25); // fFlangeMM
 
             // create new fixture and export as stl
             // passing a ProgressReporterActive object, which routes all of our information to the viewer
@@ -191,6 +195,12 @@ namespace Fixture
             Mesh mshIntersectFlange = Utils.mshCreateCube(oFlangeBounds);
             voxFlange.BoolIntersect(new Voxels(mshIntersectFlange));
 
+            // create mounting holes
+            if (!oPlate.bDoesFit(voxFlange))
+                throw new Exception("Flange doesn't fit onto base plate");
+
+            voxFlange = oPlate.voxCreateMountableFlange(voxFlange);
+
             m_voxFixture.BoolAdd(voxFlange);
 
             // z slice upward
@@ -214,7 +224,103 @@ namespace Fixture
 
         public class BasePlate
         {
-            // nothing here yet
+            public BasePlate(Vector2 vecSizeMM,
+                        float fHoleSpacingMM,
+                        float fHoleDiameterMM)
+            {
+                m_vecSize = vecSizeMM;
+                m_fHoleSpacing = fHoleSpacingMM;
+                m_fHoleRadius = fHoleDiameterMM / 2;
+            }
+            public bool bDoesFit(Voxels voxFlange)
+            {
+                BBox3 oBox = voxFlange.mshAsMesh().oBoundingBox();
+
+                // TODO try the other way around, maybe it fits 90º rotated
+                Console.WriteLine("Size Debug");
+                Console.WriteLine(oBox.vecSize().X);
+                Console.WriteLine(m_vecSize.X);
+                Console.WriteLine(oBox.vecSize().Y);
+                Console.WriteLine(m_vecSize.Y);
+
+                if (oBox.vecSize().X > m_vecSize.X)
+                    return false;
+
+                if (oBox.vecSize().Y > m_vecSize.Y)
+                    return false;
+
+                return true;
+            }
+
+            public Voxels voxCreateMountableFlange(in Voxels voxFlange) // in : passed as read only, dangerous aspects of C#
+            {
+                // drill holes and return
+                if (!bDoesFit(voxFlange))
+                    throw new Exception("Flange doesn't fit onto base plate");
+
+                BBox3 oBox = voxFlange.mshAsMesh().oBoundingBox();
+
+                // We use the extent of the flange for the region where we drill holes
+                // as it doesn't make much sense to drill outside
+
+                int nXCount = (int)float.Ceiling(oBox.vecSize().X / m_fHoleSpacing) + 1;
+                int nYCount = (int)float.Ceiling(oBox.vecSize().Y / m_fHoleSpacing) + 1;
+
+                // We use the center of the flange as the reference, so the object is centered
+                // in the middle of the base plate
+                Vector3 vecOrigin = oBox.vecCenter() - new Vector3(m_fHoleSpacing * (nXCount / 2),
+                                                                        m_fHoleSpacing * (nYCount / 2),
+                                                                        0);
+
+                // Drill beam begin and end
+                Vector3 vecBegin = vecOrigin;
+                Vector3 vecEnd = vecOrigin;
+
+                // Modify the Z coordinate, so we get a nice
+                // drill that cuts through the entire flange
+                // we add a millimeter to both sides that
+                // we get a clean cut, just in case
+
+                vecBegin.Z = oBox.vecMax.Z + 1;
+                vecEnd.Z = oBox.vecMin.Z - 1;
+
+                // Now we have a drill vector that starts at the origin of the base plate
+                // Let's create the lattice with all the drill beams
+
+                Lattice latDrills = new();
+
+                for (int x = 0; x < nXCount; x++)
+                {
+                    // Reset the Y coordinate for every row we drill
+                    vecBegin.Y = vecOrigin.Y;
+                    vecEnd.Y = vecOrigin.Y;
+
+                    for (int y = 0; y < nYCount; y++)
+                    {
+                        latDrills.AddBeam(vecBegin, vecEnd, m_fHoleRadius, m_fHoleRadius);
+
+                        vecBegin.Y += m_fHoleSpacing;
+                        vecEnd.Y += m_fHoleSpacing;
+                    }
+
+                    vecBegin.X += m_fHoleSpacing;
+                    vecEnd.X += m_fHoleSpacing;
+                }
+
+                // Voxelize the lattice and drill the holes
+
+                Voxels voxDrills = new(latDrills);
+
+                Voxels voxDrilledFlange = new(voxFlange);
+                voxDrilledFlange.BoolSubtract(voxDrills);
+
+                // And we have a perforated flange
+                return voxDrilledFlange;
+            }
+
+            Vector2 m_vecSize;
+            float m_fHoleSpacing;
+            float m_fHoleRadius;
         }
 
         public Voxels voxAsVoxels()

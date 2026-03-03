@@ -22,7 +22,7 @@ using PicoGK;
 
 try
 {
-    Library.Go(1.0f, FixtureMakerApp.Run);
+    Library.Go(0.5f, FixtureMakerApp.Run);
 }
 
 catch (Exception ex)
